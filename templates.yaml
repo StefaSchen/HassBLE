@@ -1,0 +1,159 @@
+# Device templates for Sensors tab → Import template
+# Place at repo root as templates.yaml (same branch as config.yaml).
+# Schema: templates[].id, name, description, device (same as config devices[] entry)
+
+templates:
+  - id: jaalee_jht
+    name: "Jaalee JHT"
+    description: "Temperature / humidity / battery (iBeacon, Apple 0x004C)"
+    device:
+      id: jaalee_jht
+      name: "Jaalee JHT"
+      source: advertisement
+      instance_mode: mac
+      match:
+        service_data_uuid: "F51C"
+        manufacturer_id: 76
+        manufacturer_min_length: 24
+      sensors:
+        - key: temperature
+          device_class: temperature
+          unit: "°C"
+          state_class: measurement
+          accuracy_decimals: 1
+          source_field: manufacturer_data
+          decode:
+            offset: 18
+            length: 2
+            type: int16
+            endian: big
+            scale: 0.1
+        - key: humidity
+          device_class: humidity
+          unit: "%"
+          state_class: measurement
+          accuracy_decimals: 1
+          source_field: manufacturer_data
+          decode:
+            offset: 20
+            length: 2
+            type: uint16
+            endian: big
+            scale: 0.1
+        - key: battery
+          device_class: battery
+          unit: "%"
+          state_class: measurement
+          source_field: manufacturer_data
+          decode:
+            offset: 23
+            length: 1
+            type: uint8
+
+  - id: obd_standard
+    name: "OBD-II (standard PIDs)"
+    description: "RPM, speed, coolant, fuel level — bind ELM327 adapter in app"
+    device:
+      id: obd_vehicle
+      name: "OBD Vehicle"
+      source: obd
+      obd:
+        service_uuid: "FFF0"
+        tx_char_uuid: "FFF2"
+        rx_char_uuid: "FFF1"
+      sensors:
+        - { key: rpm, preset: rpm, update_interval: 1s }
+        - { key: speed, preset: speed, update_interval: 1s }
+        - { key: coolant_temp, preset: coolant_temp, update_interval: 10s }
+        - { key: fuel_level, preset: fuel_level, update_interval: 30s }
+  - id: hyundai_ioniq_phev
+    name: "Hyundai Ioniq 1 PHEV"
+    description: "OBD-II Telemetrie für Ioniq Plug-in-Hybrid (inkl. TPMS Reifendruck, SoC, RPM)"
+    device:
+      id: ioniq_phev
+      name: "Ioniq PHEV"
+      source: obd
+      obd:
+        service_uuid: "FFF0"      # Standard-UUIDs für ELM327 BLE-Adapter
+        tx_char_uuid: "FFF2"
+        rx_char_uuid: "FFF1"
+      sensors:
+        # --- FAHRZEUG-TELEMETRIE ---
+        - key: odometer
+          name: "Kilometerstand"
+          pid: "010C"
+          bytes: 4
+          formula: "((A * 16777216) + (B * 65536) + (C * 256) + D) / 10"
+          unit: "km"
+          state_class: total_increasing
+
+        - key: soc
+          name: "Akkustand (EV)"
+          pid: "2101"
+          bytes: 1
+          formula: "A / 2"
+          unit: "%"
+          device_class: battery
+          state_class: measurement
+
+        - key: fuel_level
+          name: "Benzintank"
+          pid: "012F"
+          bytes: 1
+          formula: "(A * 100) / 255"
+          unit: "%"
+          state_class: measurement
+
+        - key: engine_rpm
+          name: "Motordrehzahl"
+          pid: "010C"
+          bytes: 2
+          formula: "((A * 256) + B) / 4"
+          unit: "U/min"
+          state_class: measurement
+
+        - key: coolant_temp
+          name: "Kühlwassertemperatur"
+          pid: "0105"
+          bytes: 1
+          formula: "A - 40"
+          unit: "°C"
+          device_class: temperature
+          state_class: measurement
+
+        # --- TPMS / REIFENDRUCK (Werte in bar umgerechnet) ---
+        - key: tire_pressure_fl
+          name: "Reifendruck Vorne Links"
+          pid: "22C00B"
+          bytes: 1
+          formula: "A * 0.0689476"
+          unit: "bar"
+          device_class: pressure
+          state_class: measurement
+
+        - key: tire_pressure_fr
+          name: "Reifendruck Vorne Rechts"
+          pid: "22C00B"
+          bytes: 1
+          formula: "B * 0.0689476"
+          unit: "bar"
+          device_class: pressure
+          state_class: measurement
+
+        - key: tire_pressure_rl
+          name: "Reifendruck Hinten Links"
+          pid: "22C00B"
+          bytes: 1
+          formula: "C * 0.0689476"
+          unit: "bar"
+          device_class: pressure
+          state_class: measurement
+
+        - key: tire_pressure_rr
+          name: "Reifendruck Hinten Rechts"
+          pid: "22C00B"
+          bytes: 1
+          formula: "D * 0.0689476"
+          unit: "bar"
+          device_class: pressure
+          state_class: measurement

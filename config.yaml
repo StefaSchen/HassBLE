@@ -1,0 +1,114 @@
+sensors:
+  - name: "odometer"
+    pid: "010C"
+    bytes: 4
+    formula: "((A * 16777216) + (B * 65536) + (C * 256) + D) / 10"
+
+  - name: "soc"
+    pid: "2101"
+    bytes: 1
+    formula: "A / 2"
+
+  - name: "engine_coolant_temp"
+    pid: "0105"
+    bytes: 1
+    formula: "A - 40"
+
+  - name: "engine_rpm"
+    pid: "010C"
+    bytes: 2
+    formula: "((A * 256) + B) / 4"
+
+  - name: "fuel_level"
+    pid: "012F"
+    bytes: 1
+    formula: "(A * 100) / 255"
+  # Reifendruck vorne links (FL) in bar
+  - name: "tire_pressure_fl"
+    pid: "22C00B"
+    bytes: 1
+    formula: "A * 0.0689476"
+
+  # Reifendruck vorne rechts (FR) in bar
+  - name: "tire_pressure_fr"
+    pid: "22C00B"
+    bytes: 1
+    formula: "B * 0.0689476"
+
+  # Reifendruck hinten links (RL) in bar
+  - name: "tire_pressure_rl"
+    pid: "22C00B"
+    bytes: 1
+    formula: "C * 0.0689476"
+
+  # Reifendruck hinten rechts (RR) in bar
+  - name: "tire_pressure_rr"
+    pid: "22C00B"
+    bytes: 1
+    formula: "D * 0.0689476"
+
+
+
+devices:
+  - id: example_sensor
+    name: "Example BLE Sensor"
+    source: advertisement
+    instance_mode: mac
+    match:
+      name_prefix: "MyDevice"
+    sensors:
+      - key: temperature
+        unit: "°C"
+        state_class: measurement
+        decode:
+          offset: 0
+          length: 2
+          type: int16
+          endian: little
+          scale: 0.1
+
+  # Jaalee JHT (온도/습도/배터리) — iBeacon 형식 (Apple 0x004C)
+  # source_field: manufacturer_data 필수 — 오프셋이 24바이트 manufacturer payload 기준
+  # manufacturer_id: 76 (= 0x004C, Apple) — kaml은 hex 리터럴 불안정, decimal 사용
+  - id: jaalee_jht
+    name: "Jaalee JHT"
+    source: advertisement
+    instance_mode: mac
+    match:
+      service_data_uuid: "F51C"
+      manufacturer_id: 76        # Apple Inc. (0x004C)
+      manufacturer_min_length: 24
+    sensors:
+      - key: temperature
+        device_class: temperature
+        unit: "°C"
+        state_class: measurement
+        accuracy_decimals: 1
+        source_field: manufacturer_data
+        decode:
+          offset: 18
+          length: 2
+          type: int16
+          endian: big
+          scale: 0.1
+      - key: humidity
+        device_class: humidity
+        unit: "%"
+        state_class: measurement
+        accuracy_decimals: 1
+        source_field: manufacturer_data
+        decode:
+          offset: 20
+          length: 2
+          type: uint16
+          endian: big
+          scale: 0.1
+      - key: battery
+        device_class: battery
+        unit: "%"
+        state_class: measurement
+        source_field: manufacturer_data
+        decode:
+          offset: 23
+          length: 1
+          type: uint8
