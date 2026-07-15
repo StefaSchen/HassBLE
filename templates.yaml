@@ -5,7 +5,7 @@
 templates:
   - id: jaalee_jht
     name: "Jaalee jht"
-    description: "Temperature / humidity / battery (iBeacon, Apple 0x004C)"
+    description: "Temperature / humidity / battery "
     device:
       id: jaalee_jht
       name: "Jaalee JHT"
